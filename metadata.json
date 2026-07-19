@@ -1,0 +1,6 @@
+{
+  "name": "阳宅风水分析系统",
+  "description": "基于传统阳宅风水理论（《阳宅三要》、《八宅明镜》、《黄帝宅经》等）的户型风水分析、罗盘排盘、气流流通分析及布局优化系统。",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
