@@ -367,9 +367,6 @@ export async function startServer(): Promise<void> {
   } else {
     const distPath = path.join(process.cwd(), 'dist');
     app.use(express.static(distPath));
-    app.get('*', (_req, res) => {
-      res.sendFile(path.join(distPath, 'index.html'));
-    });
   }
 
   const port = Number(process.env.PORT ?? 3000);
