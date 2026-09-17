@@ -7,16 +7,11 @@ import { useState } from 'react';
 import { motion } from 'motion/react';
 import {
   Compass,
-  Sparkles,
   Layers,
   Map,
   RotateCcw,
   BookOpen,
   Sliders,
-  FileText,
-  BookmarkCheck,
-  ChevronRight,
-  Calculator,
   Rotate3d,
 } from 'lucide-react';
 import LayoutCanvas from './components/LayoutCanvas';

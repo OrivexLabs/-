@@ -3,22 +3,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { RoomKey } from '../types';
 import { 
   Rotate3d, 
-  Play, 
-  Pause, 
-  Maximize, 
-  Compass, 
-  Wind, 
   Sliders, 
   Eye, 
-  HelpCircle, 
-  Flame, 
   TreePine, 
   Trees, 
-  Sparkles,
   RefreshCw
 } from 'lucide-react';
 
@@ -57,8 +49,8 @@ export default function ThreeDLayoutSandbox({
   const [zoom, setZoom] = useState<number>(0.45); // Camera zoom
   const [wallHeight, setWallHeight] = useState<number>(60); // Height of 3D walls
   const [isRotating, setIsRotating] = useState<boolean>(true); // Auto rotation
-  const [showQiFlow, setShowQiFlow] = useState<boolean>(true); // Show wind/Qi particles
-  const [qiSpeed, setQiSpeed] = useState<number>(3); // Speed of particles
+  const [showQiFlow] = useState<boolean>(true); // Show wind/Qi particles
+  const [qiSpeed] = useState<number>(3); // Speed of particles
   const [remedyApplied, setRemedyApplied] = useState<boolean>(false); // Apply screens/plants to block "Qi piercer"
 
   // View Perspective Mode: 'bird' (上帝鸟瞰) or 'walk' (平视观察)
@@ -323,7 +315,7 @@ export default function ThreeDLayoutSandbox({
       }
 
       // Draw Legend
-      drawLegend(ctx, canvas);
+      drawLegend(ctx);
 
       // Center offset
       const centerX = canvas.width / 2;
@@ -366,7 +358,7 @@ export default function ThreeDLayoutSandbox({
       const faces: Face3D[] = [];
 
       // 1. Draw classical Bagua Ring as the lowest layer
-      drawBaguaCircle(ctx, centerX, centerY, localYaw, project);
+      drawBaguaCircle(ctx, project);
 
       // 2. Floors & Walls generator
       roomsData.forEach((room) => {
@@ -543,11 +535,6 @@ export default function ThreeDLayoutSandbox({
 
         if (room.key === 'balcony_south') {
           // Large green plants representing the remedy or natural Wood barrier
-          const px1 = rx + 140;
-          const py1 = ry + 40;
-          const px2 = rx + 240;
-          const py2 = ry + 40;
-
           // Remedy screen barrier if checked
           if (remedyApplied) {
             // Screen 3D Box placed between living and dining (approx y=300, center x=485)
@@ -604,7 +591,6 @@ export default function ThreeDLayoutSandbox({
 
         // Draw dynamic room label on top of floors
         if (face.isFloor && face.label) {
-          const centerProj = project(face.points[0]); // approx label near corner
           // Calculate center of points
           const avgX = projectedPoints.reduce((sum, p) => sum + p.x, 0) / projectedPoints.length;
           const avgY = projectedPoints.reduce((sum, p) => sum + p.y, 0) / projectedPoints.length;
@@ -789,19 +775,7 @@ export default function ThreeDLayoutSandbox({
     };
   }, [yaw, pitch, zoom, wallHeight, isRotating, showQiFlow, qiSpeed, remedyApplied, selectedRoom, hoveredRoom, showElementsColor, viewPerspectiveMode, walkStep, cameraTargetX, cameraTargetY]);
 
-  // Click handler to select rooms from 3D projected coordinates
-  const handleCanvasClick = (e: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const mouseX = e.clientX - rect.left;
-    const mouseY = e.clientY - rect.top;
-
-    // To see which room was clicked, we find the one closest to screen center or let them tap room buttons.
-    // For extreme reliability, we render direct room action chips directly above or below the canvas so the user can easily select!
-  };
-
-  const drawLegend = (ctx: CanvasRenderingContext2D, canvas: HTMLCanvasElement) => {
+  const drawLegend = (ctx: CanvasRenderingContext2D) => {
     // Elegant floating widget explaining the 3D process
     ctx.fillStyle = 'rgba(15, 23, 42, 0.8)';
     ctx.strokeStyle = 'rgba(148, 163, 184, 0.15)';
@@ -826,9 +800,6 @@ export default function ThreeDLayoutSandbox({
   // Render classical Luopan ring at the base of coordinates
   const drawBaguaCircle = (
     ctx: CanvasRenderingContext2D,
-    cx: number,
-    cy: number,
-    currentYaw: number,
     project: (pt: Point3D) => { x: number; y: number }
   ) => {
     // Draw 3D Bagua compass circle base
@@ -953,7 +924,6 @@ export default function ThreeDLayoutSandbox({
           width={720}
           height={500}
           className="w-full h-full cursor-pointer block"
-          onClick={handleCanvasClick}
         />
 
         {/* Float 3D adjustment dials */}
@@ -1036,7 +1006,7 @@ export default function ThreeDLayoutSandbox({
               </button>
 
               <div className="flex gap-1 px-1.5">
-                {WALK_STEPS.map((step, idx) => (
+                {WALK_STEPS.map((_, idx) => (
                   <button
                     key={idx}
                     onClick={() => handleSelectWalkStep(idx)}

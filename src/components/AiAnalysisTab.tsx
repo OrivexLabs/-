@@ -11,6 +11,16 @@ interface AiAnalysisTabProps {
   onAnalysisSuccess: (newReport: FengShuiReport) => void;
 }
 
+async function getApiError(response: Response): Promise<string> {
+  try {
+    const payload = (await response.json()) as { error?: unknown };
+    if (typeof payload.error === 'string' && payload.error.length <= 200) return payload.error;
+  } catch {
+    // Use the generic message below for non-JSON or malformed error responses.
+  }
+  return 'AI 堪舆分析失败，请稍后重试。';
+}
+
 export default function AiAnalysisTab({ onAnalysisSuccess }: AiAnalysisTabProps) {
   const [environmentDesc, setEnvironmentDesc] = useState<string>(
     '住宅东边是高楼，西边有一条小马路，南边有小区花园景观，北边是停车场，没有高压电塔。'
@@ -23,10 +33,13 @@ export default function AiAnalysisTab({ onAnalysisSuccess }: AiAnalysisTabProps)
   const handleAiAnalyze = async () => {
     setLoading(true);
     setError(null);
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 60_000);
     try {
       const response = await fetch('/api/gemini/analyze', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
+        signal: controller.signal,
         body: JSON.stringify({
           environmentDesc,
           orientation,
@@ -35,8 +48,7 @@ export default function AiAnalysisTab({ onAnalysisSuccess }: AiAnalysisTabProps)
       });
 
       if (!response.ok) {
-        const errText = await response.text();
-        throw new Error(errText || 'AI 堪舆分析失败，请稍后重试。');
+        throw new Error(await getApiError(response));
       }
 
       const parsedReport = (await response.json()) as FengShuiReport;
@@ -47,10 +59,16 @@ export default function AiAnalysisTab({ onAnalysisSuccess }: AiAnalysisTabProps)
       } else {
         throw new Error('AI 返回的数据结构不完整，请重新分析。');
       }
-    } catch (err: any) {
-      console.error(err);
-      setError(err.message || '分析过程中发生未知的错误。');
+    } catch (err: unknown) {
+      const message = err instanceof DOMException && err.name === 'AbortError'
+        ? '分析请求超时，请稍后重试。'
+        : err instanceof Error
+          ? err.message
+          : '分析过程中发生未知的错误。';
+      console.error('[ai-analysis] request failed', { message });
+      setError(message);
     } finally {
+      window.clearTimeout(timeout);
       setLoading(false);
     }
   };
@@ -74,6 +92,7 @@ export default function AiAnalysisTab({ onAnalysisSuccess }: AiAnalysisTabProps)
           <input
             type="text"
             value={orientation}
+            maxLength={256}
             onChange={(e) => setOrientation(e.target.value)}
             placeholder="例如：坐西北朝东南（乾山巽向）"
             className="w-full bg-white dark:bg-slate-950 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
@@ -86,6 +105,7 @@ export default function AiAnalysisTab({ onAnalysisSuccess }: AiAnalysisTabProps)
           <input
             type="text"
             value={layoutDesc}
+            maxLength={1000}
             onChange={(e) => setLayoutDesc(e.target.value)}
             placeholder="例如：四房两厅两卫，南北通透"
             className="w-full bg-white dark:bg-slate-950 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20"
@@ -100,6 +120,7 @@ export default function AiAnalysisTab({ onAnalysisSuccess }: AiAnalysisTabProps)
           <textarea
             rows={3}
             value={environmentDesc}
+            maxLength={2000}
             onChange={(e) => setEnvironmentDesc(e.target.value)}
             placeholder="描述您家窗外或周边能见到的物理结构：如西面有小河，南面正对写字楼，北面有高架桥等..."
             className="w-full bg-white dark:bg-slate-950 px-3 py-2 rounded-lg border border-slate-200 dark:border-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-500/20 leading-relaxed resize-none"
